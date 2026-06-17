@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Учёт посещаемости — ККРЭиИТ</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, sans-serif; }
+        body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
+        .container { max-width: 900px; margin: 0 auto; background: white; border-radius: 15px; padding: 30px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2); }
+        h1 { text-align: center; color: #333; margin-bottom: 10px; font-size: 28px; }
+        .subtitle { text-align: center; color: #777; margin-bottom: 20px; font-size: 14px; }
+        
+        /* Реклама дегустатора */
+        .ad-banner {
+            background: linear-gradient(90deg, #fff9c4, #fff3e0);
+            padding: 12px 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 14px;
+            border: 2px dashed #f57c00;
+            animation: pulse 3s infinite;
+        }
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.01); } }
+        .ad-banner a { color: #e65100; text-decoration: none; font-weight: 600; }
+        .ad-banner a:hover { text-decoration: underline; }
+
+        .input-section { background: #f9f9f9; padding: 20px; border-radius: 12px; margin-bottom: 20px; }
+        .input-section h2 { color: #333; margin-bottom: 15px; font-size: 18px; }
+        .form-row { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; align-items: flex-end; }
+        .form-group { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 150px; }
+        .form-group label { font-size: 13px; color: #555; font-weight: 600; }
+        .form-group input { padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-size: 14px; transition: border-color 0.3s; }
+        .form-group input:focus { outline: none; border-color: #667eea; }
+        button { padding: 10px 20px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.3s; }
+        .btn-add { background: #667eea; color: white; }
+        .btn-add:hover { background: #5568d3; }
+        .btn-ready { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white; width: 100%; margin-top: 15px; padding: 15px; font-size: 16px; font-weight: 700; }
+        .btn-ready:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(17, 153, 142, 0.4); }
+        .btn-reset { background: #e0e0e0; color: #333; width: 100%; margin-top: 10px; padding: 12px; }
+        .btn-reset:hover { background: #d0d0d0; }
+
+        .pending-list { margin-top: 15px; }
+        .pending-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 15px; background: white; border-radius: 8px; margin-bottom: 8px; border-left: 4px solid #667eea; }
+        .pending-item .info { flex: 1; }
+        .pending-item .name { font-weight: 600; color: #333; }
+        .pending-item .hours { font-size: 13px; color: #666; margin-top: 3px; }
+        .delete-btn { background: #ff5252; color: white; padding: 5px 10px; font-size: 12px; border-radius: 5px; }
+        .empty-list { text-align: center; padding: 30px; color: #999; }
+        .result-section { display: none; margin-top: 25px; }
+        .result-section.active { display: block; animation: fadeIn 0.5s; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .result-section h2 { color: #333; margin-bottom: 15px; font-size: 20px; text-align: center; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        thead { background: #667eea; color: white; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
+        tbody tr:hover { background: #f5f5f5; }
+.percent-badge { display: inline-block; padding: 5px 12px; border-radius: 15px; font-weight: 700; font-size: 13px; }
+        .percent-green { background: #e8f5e9; color: #2e7d32; }
+        .percent-yellow { background: #fff3e0; color: #f57c00; }
+        .percent-red { background: #ffebee; color: #c62828; }
+        .percent-black { background: #212121; color: #fff; }
+        .status-text { font-size: 12px; color: #666; margin-top: 3px; }
+        .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 20px; }
+        .summary-card { padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 12px; text-align: center; }
+        .summary-card .value { font-size: 32px; font-weight: 700; margin: 10px 0; }
+        .summary-card .label { font-size: 13px; opacity: 0.9; }
+
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); z-index: 1000; justify-content: center; align-items: center; }
+        .modal-overlay.active { display: flex; }
+        .modal { background: white; padding: 30px; border-radius: 15px; max-width: 500px; text-align: center; border: 3px solid #c62828; animation: shake 0.5s; }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-10px); } 75% { transform: translateX(10px); } }
+        .modal h2 { color: #c62828; margin-bottom: 15px; font-size: 24px; }
+        .modal p { color: #333; margin-bottom: 15px; line-height: 1.6; }
+        .modal .contract-text { background: #fff3e0; padding: 15px; border-radius: 8px; margin: 20px 0; font-size: 14px; text-align: left; }
+        .modal button { margin: 5px; padding: 10px 25px; }
+        .btn-close { background: #667eea; color: white; }
+        .btn-contract { background: #4caf50; color: white; }
+        .btn-contract:hover { background: #388e3c; }
+        .redirecting { display: none; margin: 20px 0; font-weight: 600; color: #11998e; }
+        .spinner { width: 30px; height: 30px; border: 4px solid #eee; border-top: 4px solid #11998e; border-radius: 50%; animation: spin 1s linear infinite; margin: 10px auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        @media (max-width: 600px) { .container { padding: 20px; } h1 { font-size: 22px; } .summary-card .value { font-size: 24px; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊  Учёт посещаемости</h1>
+        <p class="subtitle">КГБПОУ «Красноярский колледж радиоэлектроники и информационных технологий»</p>
+
+        <!-- Реклама дегустатора майонеза -->
+        <div class="ad-banner">
+            🥄  <strong>Вакансия в столовой ККРЭиИТ!</strong> Требуется дегустатор майонеза.<br>
+            Условия: 3 банки/день, гибкий график, опыт не обязателен. <a href="#" onclick="alert('Заявки принимаются у заведующего столовой, каб. 101')">Подробнее →</a>
+        </div>
+
+        <div class="input-section">            <h2>➕ Введите предметы и пропуски</h2>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Название предмета</label>
+                    <input type="text" id="subjectName" placeholder="Например: Программирование">
+                </div>
+                <div class="form-group" style="max-width: 150px;">
+                    <label>Всего часов</label>
+                    <input type="number" id="totalHours" placeholder="72" min="1">
+                </div>
+                <div class="form-group" style="max-width: 150px;">
+                    <label>Пропущено часов</label>
+                    <input type="number" id="missedHours" placeholder="0" min="0">
+                </div>
+                <button class="btn-add" onclick="addSubject()">+ Добавить</button>
+            </div>
+            <div id="pendingList" class="pending-list"></div>
+<button class="btn-ready" onclick="showResults()">✅ Готово — показать результат</button>
+            <button class="btn-reset" onclick="resetAll()">🗑 Очистить всё</button>
+        </div>
+
+        <div id="resultSection" class="result-section">
+            <h2>📈  Результаты посещаемости</h2>
+            <div class="summary">
+                <div class="summary-card"><div class="label">Всего предметов</div><div class="value" id="totalSubjects">0</div></div>
+                <div class="summary-card"><div class="label">Средняя посещаемость</div><div class="value" id="avgAttendance">0%</div></div>
+                <div class="summary-card"><div class="label">Всего пропущено</div><div class="value" id="totalMissed">0 ч.</div></div>
+            </div>
+            <table>
+                <thead><tr><th>Предмет</th><th>Часов всего</th><th>Пропущено</th><th>Посещаемость</th></tr></thead>
+                <tbody id="resultTable"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Модальное окно -->
+    <div class="modal-overlay" id="contractModal">
+        <div class="modal">
+            <h2 id="modalTitle">⚠️  ВНИМАНИЕ! КРИТИЧЕСКИЕ ПРОПУСКИ!</h2>
+            <p id="modalText">Студент, у вас пропуски более <strong>60%</strong> по одному из предметов!</p>
+            
+            <div class="contract-text" id="contractText">
+                <strong>📋 ПРЕДЛОЖЕНИЕ:</strong><br><br>
+                В связи с критической ситуацией с посещаемостью, учебный отдел предлагает рассмотреть вариант <strong>оформления договора на прохождение производственной практики в столовой колледжа</strong>.<br><br>
+                ✅ Подъёмные: 3 банки майонеза<br>
+                ✅ Ежемесячная выплата: дегустационные образцы<br>
+                ✅ Посещаемость гарантирована<br>
+                ✅ Пропуски засчитываются как отработка<br><br>
+                <em>* Это шутка. Пожалуйста, начните посещать занятия 😄 </em>
+            </div>
+            <div class="redirecting" id="redirectingScreen">
+                <div class="spinner"></div>
+                <p>Перенаправление на портал оформления...</p>
+            </div>
+
+            <div id="modalButtons">
+                <button class="btn-contract" onclick="goToContract()">Оформить договор 📝 </button>
+                <button class="btn-close" onclick="closeModal()">Начну ходить на пары 📚</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let subjects = [];
+
+        function addSubject() {
+            const name = document.getElementById('subjectName').value.trim();
+            const total = parseInt(document.getElementById('totalHours').value);
+            const missed = parseInt(document.getElementById('missedHours').value);
+
+            if (!name) { alert('Введите название предмета!'); return; }
+            if (!total || total <= 0) { alert('Введите корректное количество часов!'); return; }
+            if (isNaN(missed) || missed < 0) { alert('Введите корректное число пропусков!'); return; }
+            if (missed > total) { alert('Пропусков не может быть больше, чем всего часов!'); return; }
+
+            subjects.push({ name, total, missed });
+            document.getElementById('subjectName').value = '';
+            document.getElementById('totalHours').value = '';
+            document.getElementById('missedHours').value = '';
+            document.getElementById('subjectName').focus();
+            renderPendingList();
+        }
+
+        function deleteSubject(index) {
+            subjects.splice(index, 1);
+            renderPendingList();
+            document.getElementById('resultSection').classList.remove('active');
+        }
+
+        function renderPendingList() {
+            const list = document.getElementById('pendingList');
+            if (subjects.length === 0) { list.innerHTML = '<div class="empty-list">Список предметов пуст</div>'; return; }
+            let html = '';
+            subjects.forEach((s, i) => {
+                html += `<div class="pending-item">
+<div class="info"><div class="name">${s.name}</div><div class="hours">Всего: ${s.total} ч. | Пропущено: ${s.missed} ч.</div></div>
+                    <button class="delete-btn" onclick="deleteSubject(${i})">Удалить</button>
+                </div>`;
+            });            list.innerHTML = html;
+        }
+
+        function showResults() {
+            if (subjects.length === 0) { alert('Добавьте хотя бы один предмет!'); return; }
+            const resultSection = document.getElementById('resultSection');
+            const resultTable = document.getElementById('resultTable');
+            let totalHoursSum = 0, totalMissedSum = 0, attendanceSum = 0, hasCritical = false;
+            let html = '';
+
+            subjects.forEach(s => {
+                const attended = s.total - s.missed;
+                const percent = (attended / s.total) * 100;
+                totalHoursSum += s.total; totalMissedSum += s.missed; attendanceSum += percent;
+                let badgeClass = 'percent-green', statusText = '✅ Отлично';
+                if (percent < 40) { badgeClass = 'percent-black'; statusText = '💀  КРИТИЧНО!'; hasCritical = true; }
+                else if (percent < 60) { badgeClass = 'percent-red'; statusText = '⚠️  Отчисление близко'; }
+                else if (percent < 75) { badgeClass = 'percent-yellow'; statusText = '⚡ Лучше не пропускать'; }
+
+                html += `<tr><td><strong>${s.name}</strong></td><td>${s.total}</td><td>${s.missed}</td>
+                    <td><span class="percent-badge ${badgeClass}">${percent.toFixed(1)}%</span><div class="status-text">${statusText}</div></td></tr>`;
+            });
+
+            resultTable.innerHTML = html;
+            document.getElementById('totalSubjects').textContent = subjects.length;
+            document.getElementById('avgAttendance').textContent = (attendanceSum / subjects.length).toFixed(1) + '%';
+            document.getElementById('totalMissed').textContent = totalMissedSum + ' ч.';
+            resultSection.classList.add('active');
+            resultSection.scrollIntoView({ behavior: 'smooth' });
+
+            if (hasCritical) setTimeout(() => document.getElementById('contractModal').classList.add('active'), 800);
+        }
+
+        function resetAll() {
+            if (subjects.length > 0 && !confirm('Очистить все данные?')) return;
+            subjects = []; document.getElementById('resultSection').classList.remove('active'); renderPendingList();
+        }
+
+        function closeModal() { document.getElementById('contractModal').classList.remove('active'); }
+
+        function goToContract() {
+            document.getElementById('modalButtons').style.display = 'none';
+            document.getElementById('contractText').style.display = 'none';
+            document.getElementById('redirectingScreen').style.display = 'block';
+            document.getElementById('modalTitle').textContent = '⏳ Обработка...';
+            document.getElementById('modalText').textContent = 'Подготовка документов к договору...';
+            
+            setTimeout(() => {
+                document.getElementById('redirectingScreen').style.display = 'none';
+                document.getElementById('modalTitle').textContent = '🎉  Договор оформлен!';                document.getElementById('modalText').innerHTML = 'Шутка! 😄 <br>На самом деле лучше сходи к куратору, закрой долги и перестань пропускать пары. А майонез дегустируй только на обед в столовой!';
+                document.getElementById('modalButtons').style.display = 'block';
+                document.querySelector('.btn-contract').textContent = 'Понял, исправлюсь ✅';
+                document.querySelector('.btn-close').style.display = 'none';
+            }, 2500);
+        }
+
+        renderPendingList();
+    </script>
+</body>
+</html>
+
